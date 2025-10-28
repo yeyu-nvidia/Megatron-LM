@@ -50,13 +50,12 @@ def report_draft_acceptance_length(model, osl: int = 64, draft_steps: int = 1):
                     diffusion_steps,
                     steps,
                     actual_osl,
-                    draft_length,
+                    draft_steps,
                 ),
                 flush=True,
             )
     if torch.distributed.get_rank() == 0:
         al = total_osl / total_steps
-        ar = al / draft_length
         print(
             "Rank {:3}/{:3} {:12} AL {:.1f} diffusion_steps {:.2f} STEPS {:5}/{:5} DRAFT {:2}".format(
                 torch.distributed.get_rank(),
@@ -66,7 +65,7 @@ def report_draft_acceptance_length(model, osl: int = 64, draft_steps: int = 1):
                 total_diffusion_steps,
                 total_steps,
                 total_osl,
-                draft_length,
+                draft_steps,
             ),
             flush=True,
         )
