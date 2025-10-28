@@ -122,12 +122,13 @@ def simple_speculative_generate(
 
     total_steps = 0
     while input_ids.shape[-1] < output_ids.shape[-1]:
-        total_steps += 1
+        #total_steps += 1
         offset = input_ids.shape[-1] + 1
 
         # Speculative decoding forward
         # NOTE: PP is not yet supported.
-        new_token, draft_tokens = model.pseudo_speculative_generate(input_ids, steps=draft_length)
+        new_token, draft_tokens, diffusion_step = model.pseudo_speculative_generate(input_ids, steps=draft_length)
+        total_steps += diffusion_step
 
         # Always accept the first token.
         input_ids = output_ids[:, : offset]

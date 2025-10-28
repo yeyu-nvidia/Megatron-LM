@@ -136,12 +136,15 @@ if __name__ == "__main__":
     validator = MegatronARValidation(unwrapped_model, tokenizer)
     gt = []
     ar = []
+    diffusion_steps = []
     for prompt, truth in zip(prompts, ground_truth):
         output = validator.validate(args.osl, prompt, ground_truth=truth, steps=args.steps)
         gt.append(output[0])
         ar.append(output[1])
+        diffusion_steps.append(output[2])
     print_rank_0("Acceptance Rate: " + str(ar))
     print_rank_0("Average: " + str(sum(ar)/len(ar)))
+    print_rank_0("Avg Diffusion Steps: " + str(diffusion_steps))
 
     if args.save_ground_truth_path is not None:
         torch.save(gt, args.save_ground_truth_path)
