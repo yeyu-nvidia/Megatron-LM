@@ -140,7 +140,6 @@ if __name__ == "__main__":
         _ = load_modelopt_checkpoint(model)
 
     if args.algorithm in ("eagle1", "eagle3"):
-
         # Add mask tokens for parallel draft
         if unwrapped_model.eagle_config.parallel_draft_step > 1:
             tokenizer = get_tokenizer()
