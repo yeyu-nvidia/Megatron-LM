@@ -8,7 +8,7 @@ from megatron.training import get_tokenizer
 from megatron.training.utils import unwrap_model
 
 
-def report_draft_acceptance_length(model, osl: int = 64, draft_length: int = 7):
+def report_draft_acceptance_length(model, osl: int = 64, draft_steps: int = 1):
     """Report MTBench acceptance length."""
     tokenizer = get_tokenizer()._tokenizer
     unwrapped_model = unwrap_model(model)[0]
@@ -28,25 +28,26 @@ def report_draft_acceptance_length(model, osl: int = 64, draft_length: int = 7):
 
     total_osl = 0
     total_steps = 0
+    total_diffusion_steps = 0
     for category, conversations in category_and_prompt.items():
         input_ids = tokenizer.apply_chat_template(
             conversations, return_tensors="pt", add_generation_prompt=True
         ).to(torch.cuda.current_device())
-        output_ids, actual_osl, steps = simple_speculative_generate(
-            unwrapped_model, input_ids, osl=osl, draft_length=draft_length, disable_tqdm=True
+        output_ids, actual_osl, steps, diffusion_steps = simple_speculative_generate(
+            unwrapped_model, input_ids, osl=osl, steps=draft_steps, disable_tqdm=True
         )
         total_osl += actual_osl
         total_steps += steps
+        total_diffusion_steps += diffusion_steps
         if torch.distributed.get_rank() == 0:
             al = actual_osl / steps
-            ar = al / draft_length
             print(
-                "Rank {:3}/{:3} {:12} AL {:.1f} AR {:.2f} STEPS {:5}/{:5} DRAFT {:2}".format(
+                "Rank {:3}/{:3} {:12} AL {:.1f} diffusion_steps {:.2f} STEPS {:5}/{:5} DRAFT {:2}".format(
                     torch.distributed.get_rank(),
                     torch.distributed.get_world_size(),
                     category,
                     al,
-                    ar,
+                    diffusion_steps,
                     steps,
                     actual_osl,
                     draft_length,
@@ -57,12 +58,12 @@ def report_draft_acceptance_length(model, osl: int = 64, draft_length: int = 7):
         al = total_osl / total_steps
         ar = al / draft_length
         print(
-            "Rank {:3}/{:3} {:12} AL {:.1f} AR {:.2f} STEPS {:5}/{:5} DRAFT {:2}".format(
+            "Rank {:3}/{:3} {:12} AL {:.1f} diffusion_steps {:.2f} STEPS {:5}/{:5} DRAFT {:2}".format(
                 torch.distributed.get_rank(),
                 torch.distributed.get_world_size(),
                 "average",
                 al,
-                ar,
+                total_diffusion_steps,
                 total_steps,
                 total_osl,
                 draft_length,

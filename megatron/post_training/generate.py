@@ -104,7 +104,7 @@ def simple_speculative_generate(
     input_ids: torch.Tensor,
     images: Optional[torch.Tensor] = None,
     osl: int = 32,
-    draft_length: int = 0,
+    steps: int = 0,
     eos_token_id: List[int] = [],
     disable_tqdm: bool = False,
 ):
@@ -121,14 +121,15 @@ def simple_speculative_generate(
     actual_osl = output_ids.shape[-1] - input_ids.shape[-1]
 
     total_steps = 0
+    diffusion_steps = 0
     while input_ids.shape[-1] < output_ids.shape[-1]:
-        #total_steps += 1
+        total_steps += 1
         offset = input_ids.shape[-1] + 1
 
         # Speculative decoding forward
         # NOTE: PP is not yet supported.
-        new_token, draft_tokens, diffusion_step = model.pseudo_speculative_generate(input_ids, steps=draft_length)
-        total_steps += diffusion_step
+        new_token, draft_tokens, diffusion_step = model.pseudo_speculative_generate(input_ids, steps=steps)
+        diffusion_steps += diffusion_step
 
         # Always accept the first token.
         input_ids = output_ids[:, : offset]
@@ -139,6 +140,8 @@ def simple_speculative_generate(
         for i in range(draft_tokens.shape[-1]):
             if torch.equal(draft_tokens[:, i : i + 1], output_ids[:, offset: offset + 1]):
                 offset += 1
+            else:
+                break
 
         # Broadcast the accepted offset from the last rank.
         offset = [offset]
@@ -149,4 +152,4 @@ def simple_speculative_generate(
 
         input_ids = output_ids[:, : offset[0]]
 
-    return output_ids, actual_osl, total_steps
+    return output_ids, actual_osl, total_steps, diffusion_steps
